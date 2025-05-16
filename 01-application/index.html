@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Простая веб-страница</title>
+</head>
+
+<body>
+    <h1>Информация о хосте</h1>
+    <p><b>Имя хоста:</b> {{.Hostname}}</p>
+    <p><b>IP адрес:</b> {{range .IPAddresses}}{{.}}<br>{{end}}</p>
+    <p><b>Автор:</b> {{.Author}}</p>
+</body>
+
+</html>

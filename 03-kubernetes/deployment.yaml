@@ -1,0 +1,46 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: default-backend-app
+  namespace: default-backend-ns
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: default-backend-app
+  template:
+    metadata:
+      labels:
+        app: default-backend-app
+    spec:
+      imagePullSecrets:
+        - name: dockerhubauthcred
+      containers:
+        - name: nginx-default-backend
+          image: bxrbasov/web_app:1.0
+          resources:
+            limits:
+              memory: 500Mi
+            requests:
+              memory: 250Mi
+          ports:
+            - containerPort: 8000
+          env:
+            - name: AUTHOR
+              valueFrom:
+                configMapKeyRef:
+                  name: web-app-config
+                  key: author
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20

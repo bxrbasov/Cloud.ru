@@ -1,0 +1,8 @@
+---
+# playbook file for role ansible_configuration
+- name: Автоматизация конфигурации виртуальной машины с Ansible
+  hosts: all
+  become: true
+
+  roles:
+    - { role: ansible_configuration, when: ansible_os_family == "Debian" }

@@ -1,0 +1,66 @@
+Для того, чтобы определить, какой алгоритм балансировки взять, необходимо рассмотреть все имеющиеся виды:
+
+    1. round robin - серверы выбираются по очереди, равномерно распределяя нагрузку;
+    2. least_conn - nginx отправляет запрос на сервер с наименьшим количеством активных соединений;
+    3. ip_hash - для каждого IP-адреса клиента выбирается один и тот же сервер (на основе хэша IP-адреса);
+    4. hash - позволяет хэшировать запросы на основе произвольного ключа;
+    5. random - сервер выбирается случайным образом.
+
+Для простого web-приложения наиболее подходящими являются: round robin или least_conn; 
+поскольку они обеспечивают простую настройку и равномерное распределение нагрузки.
+
+Однако у каждого из них есть также минусы: 
+    round robin - не учитывает загрузку серверов;
+    least_conn - не подходит для ситуаций, когда соединения быстро устанавливаются и закрываются.
+
+В целом, как уже сказано, можно выбрать один из них, учитывая вышеописанные недостатки. 
+В моём случае, для конечного решения, я решил провести небольшое "нагрузочное тестирование".
+Для этого запустил написанное приложение в Yandex Compute Cloud и при помощи утилиты 
+siege - утилита командной строки для нагрузочного тестирования; провёл тестирование.
+
+
+При кол-ве одновременных запросов = 100 в течение 30 секунд:
+
+Для least_conn:                                             Для round robin:
+
+{       "transactions":                         2989,       {       "transactions":                        25769,
+        "availability":                       100.00,               "availability":                       100.00,
+        "response_time":                        0.14,               "response_time":                        0.09,
+        "transaction_rate":                   101.01,               "transaction_rate":                   868.52,
+        "concurrency":                         14.54,               "concurrency":                         77.44,
+        "longest_transaction":                 15.35,               "longest_transaction":                  8.11,
+        "shortest_transaction":                 0.00                "shortest_transaction":                 0.00
+}                                                           }
+
+При кол-ве одновременных запросов = 500 в течение 30 секунд:
+
+Для least_conn:                                             Для round robin:
+
+{       "transactions":                         5437,       {       "transactions":                         3574,
+        "availability":                       100.00,               "availability":                       100.00,
+        "response_time":                        0.77,               "response_time":                        0.50,
+        "transaction_rate":                   181.96,               "transaction_rate":                   121.44,
+        "concurrency":                        140.11,               "concurrency":                         61.29,
+        "longest_transaction":                 22.62,               "longest_transaction":                 18.54,
+        "shortest_transaction":                 0.00                "shortest_transaction":                 0.00
+}                                                           }
+
+При кол-ве одновременных запросов = 1000 в течение 30 секунд:
+
+Для least_conn:                                             Для round robin:
+
+{       "transactions":                        14003,       {       "transactions":                        15577,
+        "availability":                        92.21,               "availability":                        99.46,
+        "response_time":                        1.37,               "response_time":                        1.34,
+        "transaction_rate":                   468.01,               "transaction_rate":                   527.50,
+        "concurrency":                        642.77,               "concurrency":                        865.86,
+        "longest_transaction":                 23.95,               "longest_transaction":                 17.04,
+        "shortest_transaction":                 0.00                "shortest_transaction":                 0.00
+}                                                           }
+
+Таким образом, исходя из response_time - скорость обработки запросов для round robin в среднем меньше, 
+из availability - кол-во обработанных "успешно" запросов для round robin при высокой нагрузке выше,
+а также суммарное кол-во обработанных запросов больше в случае round robin. Хотя такие оценки 
+не способны дать достаточной точности, но они способны несколько описать данные различия.
+
+Вывод: выбрал алгоритм балансировки - round robin.

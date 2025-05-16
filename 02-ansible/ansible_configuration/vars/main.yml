@@ -1,0 +1,6 @@
+---
+# vars file for ansible_configuration
+image_name: bxrbasov/web_app:1.0
+container_name_prefix: web_app
+number_of_containers: 3
+nginx_upstream_name: simple_web_app

@@ -1,0 +1,6 @@
+---
+# defaults file for ansible_configuration
+nginx_config_file: /etc/nginx/nginx.conf
+docker_username: "{{ lookup('env', 'DOCKER_USERNAME') }}"
+docker_password: "{{ lookup('env', 'DOCKER_PASSWORD') }}"
+docker_registry_url: https://index.docker.io/v1/

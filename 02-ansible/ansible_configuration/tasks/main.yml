@@ -1,0 +1,92 @@
+---
+# tasks file for ansible_configuration
+- name: Установка и настройка Docker
+  block:
+    - name: Установка дополнительных зависимостей
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      loop:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - gnupg-agent
+        - software-properties-common
+
+    - name: Добавление GPG-ключа
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Добавление Docker repository
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu bionic stable
+        state: present
+
+    - name: Установка Docker
+      apt:
+        name: "{{ item }}"
+        state: latest
+        update_cache: yes
+      loop:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+      notify:
+        - start docker
+  rescue:
+    - name: Сообщение об ошибке при установке Docker
+      debug:
+        msg: "Ошибка при установке Docker. Убедитесь, что у вас правильные права доступа и сеть настроены."
+
+- name: Pushing Docker-image из приватного регистра и запуск приложений
+  block:
+    - name: Авторизация в Docker Registry
+      community.docker.docker_login:
+        username: "{{ lookup('env', 'DOCKER_USERNAME') }}"
+        password: "{{ lookup('env', 'DOCKER_PASSWORD') }}"
+        registry: "{{ docker_registry_url }}"
+        reauthorize: true
+
+    - name: Pull Docker image from private registry
+      docker_image:
+        name: "{{ image_name }}"
+        source: pull
+      retries: 3
+      delay: 10
+
+    - name: Запуск контейнеров с web-приложением
+      docker_container:
+        name: "{{ container_name_prefix }}_{{ item }}"
+        image: "{{ image_name }}"
+        state: started
+        restart_policy: always
+        ports:
+        - "800{{ item }}:8000"
+      loop: "{{ range(1, number_of_containers + 1) | list }}"
+  rescue:
+    - name: Ошибка при запуске приложений через приватный Docker регистр
+      debug:
+        msg: "Ошибка при запуске приложений через приватный Docker регистр. Убедитесь, что у вас правильные права доступа и подключение к регистру настроены."
+
+- name: Установка Nginx (если отсутствует)
+  block:
+    - name: Установка сервера Nginx
+      apt:
+        name: "{{ item }}"
+        state: latest
+        update_cache: yes
+      loop:
+        - nginx
+    
+    - name: Копирование конфигурации Nginx
+      template:
+        src: nginx.conf.j2
+        dest: "{{ nginx_config_file }}"
+      notify:
+        - restart nginx
+  rescue:
+    - name: Сообщение об ошибке при установке Nginx
+      debug:
+        msg: "Ошибка при установке Nginx. Убедитесь, что у вас правильные права доступа и сеть настроены."    
